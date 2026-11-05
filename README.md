@@ -26,7 +26,57 @@ flat-volatility model.
 | Average loss, given a loss | 55% of principal | 44% of principal |
 
 Choosing the volatility at the 70% barrier (25.40%) instead underprices the note by about $31.
-All figures are in the [report](report/Heston_Autocallable_Pricing_Report.pdf) and in the notebook outputs.
+
+## Calibration results
+
+The five Heston parameters are fitted to 200 SPX options across 8 expiries (Mar-2027 to Dec-2030) under three
+objectives:
+
+| Fit | v₀ | κ | θ | η | ρ | Feller ratio 2κθ/η² | RMSE (vol pts) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| **Regular (used)** | **0.0283** | **3.416** | **0.0547** | **1.950** | **−0.545** | **0.098** | **0.19** |
+| Spread-weighted | 0.0191 | 4.203 | 0.0481 | 1.595 | −0.604 | 0.159 | 0.28 |
+| Feller-penalized | 0.0146 | 1.880 | 0.0473 | 0.422 | −0.950 | 1.00 | 0.36 |
+
+- **Economically sensible parameters:** current volatility √v₀ = 16.8% rising toward a long-run level of
+  √θ = 23.4%, mean reversion κ = 3.4 (half-life about 2.5 months), and a negative spot-vol correlation that
+  produces the equity skew.
+- **Close fit:** the error per expiry ranges from 0.06 to 0.24 vol points.
+- **Feller condition:** enforcing it nearly doubles the fit error and drives ρ to its −0.95 bound, so the
+  regular fit is used. Repricing the note with the other two fits moves the price by less than $2.
+
+<p align="center">
+  <img src="figures/regular_fit_fitting_plot.png" width="100%" alt="Heston implied volatility against market quotes for each of the 8 expiries">
+  <br><em>Heston implied volatility (blue) against market mid quotes (red) and the bid-ask band, by expiry.</em>
+</p>
+
+<p align="center">
+  <img src="figures/3d_surface_2.png" width="55%" alt="Calibrated Heston implied volatility surface with market quotes">
+  <br><em>Calibrated Heston implied volatility surface, with the market quotes in red.</em>
+</p>
+
+## Heston vs flat volatility
+
+| Price against a single flat volatility | Index return at maturity, notes not called |
+|:---:|:---:|
+| <img src="figures/SV_vs_flat.png" width="100%" alt="Note price against flat volatility, with the Heston price"> | <img src="figures/return_distribution.png" width="100%" alt="Index return at maturity for notes not called, Heston vs flat volatility"> |
+
+- **Left:** the flat-volatility tree and Monte Carlo agree with each other and cross the Heston price (blue band)
+  at a flat volatility of 20.55%, close to the ATM level. At the 70% barrier volatility the note is about $31
+  cheaper, so a flat model is only right if the right volatility is picked.
+- **Right:** for notes that reach maturity, Heston (blue) puts less mass just below the −30% loss threshold but
+  much more in the far left tail. The index ends below 30% of its initial level in 1.7% of Heston paths, against
+  0.1% under flat volatility.
+
+The two models also build the price from different cash flows. Heston starts from a lower current volatility
+(16.8%), so the note is called earlier and pays fewer coupons:
+
+| PV per $1,000 | Heston MC | Flat-vol MC (ATM) |
+|---|---:|---:|
+| Coupons | 101.7 | 118.6 |
+| Principal repaid at an autocall | 817.7 | 751.2 |
+| Principal repaid at maturity | 79.2 | 126.9 |
+| **Total** | **998.6** | **996.7** |
 
 ## Method
 
@@ -58,6 +108,7 @@ All figures are in the [report](report/Heston_Autocallable_Pricing_Report.pdf) a
 │   ├── binomial.py         # CRR binomial tree for the note, flat-vol surface lookup
 │   ├── comparison.py       # vectorized paths, per-path cash flows, tree event probabilities
 │   └── discretization.py   # time-step checks
+├── figures/                # plots shown in this README
 └── report/                 # final report (PDF)
 ```
 
